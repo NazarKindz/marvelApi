@@ -3,13 +3,12 @@ import { useState, useEffect } from 'react';
 import './randomChar.scss';
 import mjolnir from '../../resources/img/mjolnir.png';
 import useMarvelService from '../../services/MarvelService';
-import Spinner from '../spinner/Spinner';
-import ErrorMessage from '../errorMessage/ErrorMessage';
+import setContent from '../../utils/setContent';
 
 const RandomChar = () => {
 
     const [char, setChar] = useState({});
-    const {loading, error, getCharacter, clearError} = useMarvelService();
+    const {getCharacter, clearError, process, setProcess} = useMarvelService();
 
     const onCharLoaded = (char) => {
         setChar(char);
@@ -21,34 +20,18 @@ const RandomChar = () => {
 
         getCharacter(id)
             .then(onCharLoaded)
-    }
-
-    const truncateText = (text, maxLength) => {
-        if (!text) return 'Description will appear later...';
-        if (text.length <= maxLength) return text;
-
-        const truncated = text.slice(0, maxLength);
-        const lastSpace = truncated.lastIndexOf(' ');
-        return truncated.slice(0, lastSpace) + '...';
+            .then(() => setProcess('confirmed'))
     }
 
     useEffect(() => {
         updateChar();
     }, []);
 
-
-
-    const errorMessage = error ? <ErrorMessage/> : null;
-    const spinner = loading ? <Spinner/> : null;
-    const content = !(loading || error) ? <View char={char} truncateText={truncateText} /> : null;
-
     // marvelService.getAllCharacters().then(res => res.data.results.forEach(item => console.log(item.name)));
 
     return (
         <div className="randomchar">
-            {errorMessage}
-            {spinner}
-            {content}
+            {setContent(process, View, char)}
             <div className="randomchar__static">
                 <p className="randomchar__title">
                     Random character for today!<br />
@@ -66,9 +49,18 @@ const RandomChar = () => {
     )
 }
 
-const View = ({char, truncateText}) => {
+const View = ({data}) => {
 
-    const { name, description, thumbnail, homepage, wiki } = char;
+    const { name, description, thumbnail, homepage, wiki } = data;
+
+    const truncateText = (text, maxLength) => {
+        if (!text) return 'Description will appear later...';
+        if (text.length <= maxLength) return text;
+
+        const truncated = text.slice(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        return truncated.slice(0, lastSpace) + '...';
+    }
 
     const validDescription = truncateText(description, 200);
 

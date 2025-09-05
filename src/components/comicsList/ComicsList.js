@@ -5,10 +5,28 @@ import './comicsList.scss';
 import uw from '../../resources/img/UW.png';
 import xMen from '../../resources/img/x-men.png';
 
-import UseComicsService from '../../services/ComicsService';
+import useMarvelService from '../../services/MarvelService';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import Spinner from '../spinner/Spinner';
 
+const setContent = (process, Component, newItemLoading) => {
+    switch (process) {
+        case 'waiting':
+            return <Spinner />;
+            break;
+        case 'loading':
+            return newItemLoading ? <Component /> : <Spinner />;
+            break;
+        case 'error':
+            return <ErrorMessage />;
+            break;
+        case 'confirmed':
+            return <Component />;
+            break;
+        default:
+            throw new Error('Unexpected process state')
+    }
+};
 
 const ComicsList = () => {
     const [offset, setOffset] = useState(0);
@@ -17,7 +35,7 @@ const ComicsList = () => {
     const [comicsEnded, setcomicsEnded] = useState(false);
 
 
-    const {loading, error, getAllComics, clearError} = UseComicsService();
+    const {getAllComics, clearError, process, setProcess} = useMarvelService();
 
 
     useEffect(() =>{
@@ -28,6 +46,7 @@ const ComicsList = () => {
         initial ? setNewItemLoading(false) : setNewItemLoading(true);
         getAllComics(offset)
             .then(onComicsLoaded)
+            .then(() => setProcess('confirmed'))
     }
 
     const onComicsLoaded = (newComicsList) => {
@@ -42,27 +61,26 @@ const ComicsList = () => {
         setcomicsEnded(comicsEnded => ended)
     }
 
-    const element = comicsList.map((item, i) => {
-            return (
-                <li className="comics__item" key={i}>
-                    <Link to={`/comics/${item.id}`}>
-                        <img src={uw} alt="ultimate war" className="comics__item-img" />
-                        <div className="comics__item-name">{item.title}</div>
-                        <div className="comics__item-price">{item.price}</div>
-                    </Link>
-                </li>
-            )
-    })
-
-    const errorMessage = error ? <ErrorMessage /> : null;
-    const spinner = loading && !newItemLoading ? <Spinner /> : null;
+    const List = () => {
+        return (
+            <>
+                {comicsList.map((item, i) => (
+                    <li className="comics__item" key={i}>
+                        <Link to={`/comics/${item.id}`}>
+                            <img src={uw} alt="ultimate war" className="comics__item-img" />
+                            <div className="comics__item-name">{item.title}</div>
+                            <div className="comics__item-price">{item.price}</div>
+                        </Link>
+                    </li>
+                ))}
+            </>
+        );
+    };
 
     return (
         <div className="comics__list">
             <ul className="comics__grid">
-                {errorMessage}
-                {spinner}
-                {element}
+                {setContent(process, List, newItemLoading)}
             </ul>
             <button
                 className="button button__main button__long"

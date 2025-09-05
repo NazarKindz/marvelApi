@@ -1,10 +1,29 @@
 import './charList.scss';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
+
+const setContent = (process, Component, newItemLoading) => {
+    switch (process) {
+        case 'waiting':
+            return <Spinner />;
+            break;
+        case 'loading':
+            return newItemLoading ? <Component/> : <Spinner />;
+            break;
+        case 'error':
+            return <ErrorMessage />;
+            break;
+        case 'confirmed':
+            return <Component/>;
+            break;
+        default:
+            throw new Error('Unexpected process state')
+    }
+};
 
 const CharList = (props) => {
     const [charList, setCharList] = useState([]);
@@ -12,9 +31,7 @@ const CharList = (props) => {
     const [offset, setOffset] = useState(0);
     const [charEnded, setCharEnded] = useState(false);
 
-
-
-    const {loading, error, getAllCharacters} = useMarvelService();
+    const {getAllCharacters, process, setProcess} = useMarvelService();
 
     useEffect(() =>{
         onRequest(offset, true);
@@ -24,6 +41,7 @@ const CharList = (props) => {
         initial ? setNewItemLoading(false) : setNewItemLoading(true);
         getAllCharacters(offset)
             .then(onCharLoaded)
+            .then(() => setProcess('confirmed'));
     }
 
     const onCharLoaded = (newCharList) => {
@@ -47,38 +65,41 @@ const CharList = (props) => {
         itemRefs.current[id].focus();
     }
 
-    const element = charList.map((item, i) => {
+    const List = () => {
         return (
-            <li
-                className="char__item"
-                tabIndex={0}
-                ref={el => itemRefs.current[i] = el}
-                key={item.id}
-                onClick={() => {
-                    props.onCharSelected(item.id);
-                    focusOnItem(i);
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === ' ' || e.key === "Enter") {
-                        props.onCharSelected(item.id);
-                        focusOnItem(i);
-                    }
-                }}>
-                <img src={item.thumbnail} alt={item.name}/>
-                <div className="char__name">{item.name}</div>
-            </li>
-        )
-    })
+            <>
+                {charList.map((item, i) => (
+                    <li
+                        className="char__item"
+                        tabIndex={0}
+                        ref={el => itemRefs.current[i] = el}
+                        key={item.id}
+                        onClick={() => {
+                            props.onCharSelected(item.id);
+                            focusOnItem(i);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === "Enter") {
+                                props.onCharSelected(item.id);
+                                focusOnItem(i);
+                            }
+                        }}>
+                        <img src={item.thumbnail} alt={item.name} />
+                        <div className="char__name">{item.name}</div>
+                    </li>
+                ))}
+            </>
+        );
+    };
 
-    const errorMessage = error ? <ErrorMessage /> : null;
-    const spinner = loading && !newItemLoading ? <Spinner /> : null;
+    const elements = useMemo(() => {
+        return setContent(process, List, newItemLoading)
+    }, [process]);
 
     return (
         <div className="char__list">
             <ul className="char__grid">
-                {errorMessage}
-                {spinner}
-                {element}
+                {elements}
             </ul>
             <button
             className="button button__main button__long"

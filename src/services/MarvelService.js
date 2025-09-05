@@ -1,7 +1,7 @@
 import {useHttp} from '../hooks/http.hook'
 
 const useMarvelService = () => {
-    const {loading, request, error, clearError} = useHttp();
+    const {request, clearError, process, setProcess} = useHttp();
     const _apiBase = 'https://marvel-server-zeta.vercel.app/';
     const _apiKey = 'apikey=d4eecb0c66dedbfae4eab45d312fc1df';
     const _baseOffset = 0;
@@ -22,6 +22,17 @@ const useMarvelService = () => {
         return arr.find(character => character.name.toLowerCase() === name.toLowerCase());
     }
 
+    const getAllComics = async (offset = 0, limit = 8) => {
+        const res = await request('/json/comics.json');
+        return res.slice(offset, offset + limit);
+    }
+
+    const getComics = async (id) => {
+        const res = await request('/json/comics.json');
+        const comics = res.find(item => item.id === +id);
+        return comics;
+    }
+
     const _transformCharacter = (char) => {
         return {
             id: char.id,
@@ -34,7 +45,7 @@ const useMarvelService = () => {
         }
     }
 
-    return {loading, error, clearError ,getAllCharacters, getCharacterByName, getCharacter}
+    return {clearError ,getAllCharacters, getCharacterByName, getCharacter, getAllComics, getComics, process, setProcess}
 }
 
 export default useMarvelService;
